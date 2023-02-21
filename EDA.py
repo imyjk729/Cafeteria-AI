@@ -1,10 +1,9 @@
 #%%
+# Reference : https://dacon.io/competitions/official/235743/codeshare/2846?page=2&dtype=recent
+
 import numpy as np
-import torch
-import tensorflow as tf
 import matplotlib.pyplot as plt
 import seaborn as sns
-from IPython import display
 import pandas as pd
 import warnings
 warnings.filterwarnings('ignore')
@@ -179,6 +178,3 @@ sns.regplot(x='employees', y = 'num_dinner', data = train_data, color = 'blue', 
 # 그러나 데이터의 분포를 보니 관계파악이 힘들며 이를 통해 근로자 수와 식수와의 관련 없다고 판단했다.
 # %%
 
-# %%
-
-# %%
