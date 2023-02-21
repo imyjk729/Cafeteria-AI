@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import re
 
+
 def preprocess_date(data):
     """
     영어로 표시된 요일을 한글로 변환.
@@ -14,12 +15,14 @@ def preprocess_date(data):
     data(dtype=DataFrame): data
     """
     # 영어로 표시된 요일을 한글로 바꾼다.
-    date_mapper = {'월': 'Monday', '화': 'Tuesday', '수': 'Wednesday', 
-                   '목': 'Thursday', '금': 'Friday', '토': 'Saturday', '일': 'Sunday'}
-        
+    date_mapper = {
+        '월': 'Monday', '화': 'Tuesday', '수': 'Wednesday',
+        '목': 'Thursday', '금': 'Friday', '토': 'Saturday', '일': 'Sunday'
+    }
+
     data['요일'] = data['요일'].map(date_mapper)
 
-    # 일자를 Year, Month, Day로 분리한다. 
+    # 일자를 Year, Month, Day로 분리한다.
     data['일자'] = data['일자'].astype('datetime64')
     data['Year'] = data['일자'].dt.year
     data['Month'] = data['일자'].dt.month
@@ -40,14 +43,18 @@ def preprocess_menu(data):
     """
     predefined_patten = r"\s*[(<]\s*(\w+[,]*)*\w*\s*[:]*\s*[/]*(\w+[,]*)*\s*[:]*\s*(\w+[,]*)*\s*[)>]\s*"
 
-    data['중식메뉴_processed'] = data['중식메뉴']\
-        .apply(lambda x: re.sub(predefined_patten, " ", x))\
+    data['중식메뉴_processed'] = (
+        data['중식메뉴']
+        .apply(lambda x: re.sub(predefined_patten, " ", x))
         .apply(lambda x: re.sub("\s+", " ", x))
+    )
 
-    data['석식메뉴_processed'] = data['석식메뉴']\
-        .apply(lambda x: re.sub(predefined_patten, " ", x))\
+    data['석식메뉴_processed'] = (
+        data['석식메뉴']
+        .apply(lambda x: re.sub(predefined_patten, " ", x))
         .apply(lambda x: re.sub("\s+", " ", x))
-    
+    )
+
     return data
 
 
@@ -61,10 +68,13 @@ def feature_people(data):
     Returns:
     data(dtype=DataFrame): data
     """
-    data = data.assign(식사대상자 = lambda x:\
-        x['본사정원수'] - x['본사휴가자수'] - x['본사출장자수'] - x['현본사소속재택근무자수'])
+    data = data.assign(
+        식사대상자=lambda x: x['본사정원수'] - x['본사휴가자수'] -
+        x['본사출장자수'] - x['현본사소속재택근무자수']
+    )
 
     return data
+
 
 def feature_meal(data, med_lunch, med_dinner):
     """
@@ -79,12 +89,21 @@ def feature_meal(data, med_lunch, med_dinner):
     Returns:
     data(dtype=DataFrame): data  
     """
-    data = pd.merge(data, med_lunch, how='left', 
-                    left_on=['Month', '요일'], 
-                    right_on=['Month', '요일'])
-    data = pd.merge(data, med_dinner, how='left', 
-                    left_on=['Month', '요일'], 
-                    right_on=['Month', '요일'])
+    data = pd.merge(
+        data,
+        med_lunch,
+        how='left',
+        left_on=['Month', '요일'],
+        right_on=['Month', '요일']
+    )
+
+    data = pd.merge(
+        left=data,
+        right=med_dinner,
+        how='left',
+        left_on=['Month', '요일'],
+        right_on=['Month', '요일']
+    )
 
     return data
 
@@ -99,11 +118,16 @@ def change_rate(data):
     Returns:
     data(dtype=DataFrame): data  
     """
-    data = data.assign(점심_변동성 = lambda x: x['중식계'] - x['요일_lunch'])\
-        .assign(석식_변동성 = lambda x: x['석식계'] - x['요일_dinner'])
-    data = data.assign(점심_변동율 = lambda x: (x['중식계'] - x['요일_lunch']) / x['식사대상자'])\
-        .assign(석식_변동율 = lambda x: (x['석식계'] - x['요일_dinner']) / x['식사대상자'])
-    
+    data = data.assign(
+        점심_변동성=lambda x: x['중식계'] - x['요일_lunch'],
+        석식_변동성=lambda x: x['석식계'] - x['요일_dinner'],
+    )
+
+    data = data.assign(
+        점심_변동율=lambda x: (x['중식계'] - x['요일_lunch']) / x['식사대상자'],
+        석식_변동율=lambda x: (x['석식계'] - x['요일_dinner']) / x['식사대상자'],
+    )
+
     return data
 
 
@@ -132,18 +156,22 @@ class Get_data(object):
 
         test_data = preprocess_date(test_data)
         test_data = preprocess_menu(test_data)
-        
-        return train_data, test_data
 
+        return train_data, test_data
 
     def feature_engineering(self, train_data, test_data):
         train_data = feature_people(train_data)
         test_data = feature_people(test_data)
 
-        med_lunch = train_data.groupby(['Month', '요일'])['중식계']\
+        med_lunch = (
+            train_data.groupby(['Month', '요일'])['중식계']
             .apply(np.median).reset_index(name='month_days_lunch')
-        med_dinner = train_data.groupby(['Month', '요일'])['석식계']\
-            .apply(np.median).reset_index(name='month_days_dinner')
+        )
+        med_dinner = (
+            train_data.groupby(['Month', '요일'])['석식계']
+            .apply(np.median)
+            .reset_index(name='month_days_dinner')
+        )
 
         train_data = feature_meal(train_data, med_lunch, med_dinner)
         train_data = feature_covid(train_data)
@@ -151,13 +179,21 @@ class Get_data(object):
         test_data = feature_meal(test_data, med_lunch, med_dinner)
         test_data = feature_covid(test_data)
 
-        train_data['요일_lunch'] = train_data['요일'].\
-            map(dict(train_data.groupby(['요일'])['중식계'].apply(np.median)))
-        train_data['요일_dinner'] = train_data['요일'].\
-            map(dict(train_data.groupby(['요일'])['석식계'].apply(np.median)))
-        test_data['요일_lunch'] = test_data['요일'].\
-            map(dict(train_data.groupby(['요일'])['중식계'].apply(np.median)))
-        test_data['요일_dinner'] = test_data['요일'].\
-            map(dict(train_data.groupby(['요일'])['석식계'].apply(np.median)))
-        
-        return train_data, test_data 
+        train_data['요일_lunch'] = (
+            train_data['요일']
+            .map(dict(train_data.groupby(['요일'])['중식계'].apply(np.median)))
+        )
+        train_data['요일_dinner'] = (
+            train_data['요일']
+            .map(dict(train_data.groupby(['요일'])['석식계'].apply(np.median)))
+        )
+        test_data['요일_lunch'] = (
+            test_data['요일']
+            .map(dict(train_data.groupby(['요일'])['중식계'].apply(np.median)))
+        )
+        test_data['요일_dinner'] = (
+            test_data['요일']
+            .map(dict(train_data.groupby(['요일'])['석식계'].apply(np.median)))
+        )
+
+        return train_data, test_data
