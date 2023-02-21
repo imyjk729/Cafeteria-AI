@@ -25,8 +25,8 @@ def define_argparser():
     parser.add_argument(
         "--features_xgb", 
         default=[
-            '본사정원수', '본사휴가자수', '본사출장자수', '현본사소속재택근무자수', '식사대상자',\
-            '요일_lunch', '요일_dinner', '본사시간외근무명령서승인건수', 'covid',\
+            '본사정원수', '본사휴가자수', '본사출장자수', '현본사소속재택근무자수', '식사대상자',
+            '요일_lunch', '요일_dinner', '본사시간외근무명령서승인건수', 'covid',
             'Year', 'Month', 'month_days_lunch', 'month_days_dinner'
         ], 
         nargs='*', 
@@ -74,8 +74,14 @@ def define_argparser():
     )
     parser.add_argument(
         "--models_list", 
-        default=[RandomForestRegressor, LinearRegression, ElasticNet], 
-        nargs='*', type=list, help="Models list"
+        default=[
+            RandomForestRegressor,
+            LinearRegression, 
+            ElasticNet,
+        ], 
+        nargs='*', 
+        type=list, 
+        help="Models list"
     )
     parser.add_argument(
         "--rf_param", 
